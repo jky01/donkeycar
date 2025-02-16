@@ -2,20 +2,21 @@ import os
 import time
 import gymnasium as gym
 import gym_donkeycar
-
+from gymnasium.envs.registration import register
 
 def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 
-class DonkeyGymEnv(object):
-
-    def __init__(self, sim_path, host="127.0.0.1", port=9091, headless=0, env_name="donkey-generated-track-v0", sync="asynchronous", conf={}, record_location=False, record_gyroaccel=False, record_velocity=False, record_lidar=False, delay=0):
+class DonkeyGymEnv:
+    def __init__(self, sim_path, host="127.0.0.1", port=9091, headless=0, 
+                 env_name="donkey-generated-track-v0", sync="asynchronous", 
+                 conf={}, record_location=False, record_gyroaccel=False, 
+                 record_velocity=False, record_lidar=False, delay=0):
 
         if sim_path != "remote":
             if not os.path.exists(sim_path):
-                raise Exception(
-                    "The path you provided for the sim does not exist.")
+                raise Exception("The path you provided for the sim does not exist.")
 
             if not is_exe(sim_path):
                 raise Exception("The path you provided is not an executable.")
@@ -25,23 +26,52 @@ class DonkeyGymEnv(object):
         conf["port"] = port
         conf["guid"] = 0
         conf["frame_skip"] = 1
-        self.env = gym.make(env_name, conf=conf)
-        self.frame = self.env.reset()
+
+        ###########################
+        
+        #import gym_donkeycar  # Ensure gym-donkeycar is imported to avoid entry-point errors
+
+        # Register an environment
+        register(
+            id="donkey-generated-track-v0",
+            entry_point="gym_donkeycar.envs.donkey_env:GeneratedRoadsEnv",
+            kwargs={
+                "conf": {
+                    "exe_path": "/home/aa/Downloads/DonkeySimLinux/donkey_sim.x86_64",
+                    "host": "127.0.0.1",
+                    "port": 9091,
+                    "guid": 0,
+                    "frame_skip": 1,
+                    "body_style": "donkey",
+                    "body_rgb": (128, 128, 128),
+                    "car_name": "car",
+                    "font_size": 100,
+                    "racer_name": "Your Name",
+                    "country": "Place",
+                    "bio": "I race robots."
+                }
+            },
+        )
+        ##########################
+        self.env = gym.make(env_name, conf=conf,apply_api_compatibility=True)
+        #self.frame, self.info = self.env.reset()
+        self.env.reset()
         self.action = [0.0, 0.0, 0.0]
         self.running = True
-        self.info = {'pos': (0., 0., 0.),
-                     'speed': 0,
-                     'cte': 0,
-                     'gyro': (0., 0., 0.),
-                     'accel': (0., 0., 0.),
-                     'vel': (0., 0., 0.),
-                     'lidar': []}
+        # self.info.update({
+        #     'pos': (0., 0., 0.),
+        #     'speed': 0,
+        #     'cte': 0,
+        #     'gyro': (0., 0., 0.),
+        #     'accel': (0., 0., 0.),
+        #     'vel': (0., 0., 0.),
+        #     'lidar': []
+        # })
         self.delay = float(delay) / 1000
         self.record_location = record_location
         self.record_gyroaccel = record_gyroaccel
         self.record_velocity = record_velocity
         self.record_lidar = record_lidar
-
         self.buffer = []
 
     def delay_buffer(self, frame, info):
@@ -79,7 +109,7 @@ class DonkeyGymEnv(object):
         self.action = [steering, throttle, brake]
 
         # Output Sim-car position information if configured
-        outputs = [self.frame]
+        #outputs = [self.frame]
         if self.record_location:
             outputs += self.info['pos'][0],  self.info['pos'][1],  self.info['pos'][2],  self.info['speed'], self.info['cte']
         if self.record_gyroaccel:
@@ -88,10 +118,10 @@ class DonkeyGymEnv(object):
             outputs += self.info['vel'][0],  self.info['vel'][1],  self.info['vel'][2]
         if self.record_lidar:
             outputs += [self.info['lidar']]
-        if len(outputs) == 1:
-            return self.frame
-        else:
-            return outputs
+        # if len(outputs) == 1:
+        #     return self.frame
+        # else:
+        #     return outputs
 
     def shutdown(self):
         self.running = False
