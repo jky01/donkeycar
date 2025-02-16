@@ -7,7 +7,7 @@ desc: Control a real donkey robot via the gym interface
 import os
 import time
 
-import gym
+import gymnasium as gym
 import numpy as np
 from gym import error, spaces, utils
 

@@ -1,6 +1,6 @@
 import os
 import time
-import gym
+import gymnasium as gym
 import gym_donkeycar
 
 
